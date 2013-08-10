@@ -29,8 +29,11 @@ struct cubeFaceData_t {
     u8 face;
 };
 
-const int CHUNK_SIZE = 12;
+#define DISPLIST_SIZE 1024*2
+
+const int CHUNK_SIZE = 16;
 const int BLOCK_ARRAY_SIZE = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE;
+
 class Chunk
 {
 public:
@@ -45,7 +48,7 @@ public:
     void rebuildCubeRenderList();
     void renderCubes();
     void addFace(u8 x, u8 y, u8 z, u8 ID, u8 face) {
-        cubeFaceDataList.push_back({{x, y, z}, ID, face});
+       // cubeFaceDataList.push_back({{x, y, z}, ID, face});
     }
 
     Chunk *topC, *bottomC, *rightC, *leftC, *frontC, *backC;
@@ -53,8 +56,8 @@ public:
 
     //private:
     Block *blockArray[BLOCK_ARRAY_SIZE];
-    std::vector <struct cubeFaceData_t> cubeFaceDataList;
-
+    void *dispList;
+    int dispListSize;
 };
 
 #endif

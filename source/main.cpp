@@ -11,7 +11,7 @@
 #include "Math_utils.h"
 #include "Camera.h"
 #include "MatrixStack.h"
-#include "Image.hpp"
+#include "Image.h"
 
 #include "stone_png.h"
 
@@ -33,17 +33,18 @@ int main(void) {
     WPAD_Init();
 
     float chunk_length = BLOCK_SIZE * CHUNK_SIZE;
-    float world_length = chunk_length * WORLD_SIZE;
+    float world_length = chunk_length * WORLD_LENGTH;
+    float world_height = chunk_length * WORLD_HEIGHT;
 
     int chunkX, chunkY, chunkZ;
     int posX, posY, posZ;
     Chunk *c;
     Block *p;
 
-
     while (1)
     {
         printf("\x1b[%d;%dH\n", 2, 0);
+        printf("size: %i\n", WORLD_ARRAY_SIZE*sizeof(Chunk));
         read_controls();
 
         move_camera();
@@ -51,7 +52,7 @@ int main(void) {
         world.camera->updateMatrix();
 
         if((world.position.x > 0) && (world.position.y > 0) && (world.position.z > 0) &&
-            (world.position.x < world_length) && (world.position.y < world_length) &&
+            (world.position.x < world_length) && (world.position.y < world_height) &&
             (world.position.z < world_length)) {
 
                 chunkX = (int)(world.position.x/chunk_length);
@@ -84,31 +85,21 @@ int main(void) {
                 }
         }
 
-        MatrixStack.baseMatrix(world.camera->cameraMatrix);
 
-        TextureManager.setBlockTextureSide(1);
+       GX_LoadPosMtxImm(world.camera->cameraMatrix, GX_PNMTX0);
 
-        MatrixStack.Push();
         world.drawChunks();
-        MatrixStack.Pop();
 
-        MatrixStack.Set(GX_PNMTX0);
-
-        GX_SetArray(GX_VA_POS, blockPositionVertices, 3 * sizeof(float));
-        GX_SetArray(GX_VA_TEX0, blockTexCoordVertices, 2 * sizeof(float));
-
-        //0, 0, 0
-        GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
-            GX_Position1x8(0);
-                GX_TexCoord1x8(0);
-            GX_Position1x8(1);
-                GX_TexCoord1x8(1);
-            GX_Position1x8(2);
-                GX_TexCoord1x8(2);
-            GX_Position1x8(3);
-                GX_TexCoord1x8(3);
-        GX_End();
-
+       GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+          GX_Position3f32(0.0f, 0.0f, BLOCK_SIZE);
+             GX_TexCoord1x8(0);
+          GX_Position3f32(0.0f, BLOCK_SIZE, BLOCK_SIZE);
+             GX_TexCoord1x8(1);
+          GX_Position3f32(0.0f + BLOCK_SIZE, 0.0f, BLOCK_SIZE);
+             GX_TexCoord1x8(2);
+          GX_Position3f32(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+             GX_TexCoord1x8(3);
+       GX_End();
 
         world.swapBuffers();
 

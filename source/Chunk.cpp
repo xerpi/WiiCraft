@@ -12,17 +12,16 @@ Chunk::Chunk(int _indexX, int _indexY, int _indexZ)
         for(y = 0; y < CHUNK_SIZE; y++) {
             for(x = 0; x < CHUNK_SIZE; x++) {
                 int ID;
-                if(indexY < 3) {
-                    ID = BLOCK_GRASS;
-                } else if(indexY >= 3 && indexY < 6){
-                    ID = BLOCK_STONE;
-                } else {
+                if(indexY < 4) {
                     ID = BLOCK_AIR;
+                } else {
+                    ID = rand() % 2 + 1;
                 }
                 blockArray[x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_SIZE] = new Block(ID);
             }
         }
     }
+    dispList = memalign(32, DISPLIST_SIZE);
 }
 
 
@@ -36,7 +35,7 @@ Chunk::~Chunk()
             }
         }
     }
-    cubeFaceDataList.clear();
+    free(dispList);
 }
 
 void Chunk::setNeighbours(Chunk *_topC, Chunk *_bottomC, Chunk *_rightC, Chunk *_leftC, Chunk *_frontC, Chunk *_backC)
@@ -71,12 +70,16 @@ struct cubeFaceData_t {
 
 void Chunk::rebuildCubeRenderList()
 {
-    cubeFaceDataList.clear();
+    GX_BeginDispList(dispList, DISPLIST_SIZE);
+    GX_SetArray(GX_VA_TEX0, blockTexCoordVertices, 2 * sizeof(float));
     Chunk *p;
     Block *b;
-    u8 x, y, z;
+    float pos_x, pos_y, pos_z = indexZ * CHUNK_SIZE;
+    int x, y, z;
     for(z = 0; z < CHUNK_SIZE; z++) {
+        pos_y = indexY * CHUNK_SIZE;
         for(y = 0; y < CHUNK_SIZE; y++) {
+            pos_x = indexX * CHUNK_SIZE;
             for(x = 0; x < CHUNK_SIZE; x++) {
                 b = getBlockAt(x, y, z);
                 if(b->ID != BLOCK_AIR) {
@@ -84,14 +87,35 @@ void Chunk::rebuildCubeRenderList()
                     if(y < (CHUNK_SIZE-1)) {
                         b = getBlockAt(x, y + 1, z);
                         if(b->hasTransparency()) {
-                            addFace(x, y, z, b->ID, CUBE_FACE_TOP);
-                        }
+                            TextureManager.setBlockTextureTop(b->ID);
+                            GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                GX_Position3f32(pos_x, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                    GX_TexCoord1x8(0);
+                                GX_Position3f32(pos_x, pos_y + BLOCK_SIZE, pos_z);
+                                    GX_TexCoord1x8(1);
+                                GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                    GX_TexCoord1x8(2);
+                                GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z);
+                                    GX_TexCoord1x8(3);
+                                GX_End();
+                                }
                     }else {
                         p = topC;
                         if(p) {
                             b = p->getBlockAt(x, 0, z);
                             if(b->hasTransparency()) {
-                                addFace(x, y, z, b->ID, CUBE_FACE_TOP);
+                               TextureManager.setBlockTextureTop(b->ID);
+                               GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                  GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z + BLOCK_SIZE);
+                                     GX_TexCoord1x8(0);
+                                  GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                     GX_TexCoord1x8(1);
+                                  GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z);
+                                     GX_TexCoord1x8(2);
+                                  GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z);
+                                     GX_TexCoord1x8(3);
+                               GX_End();
                             }
                         }
                     }
@@ -99,30 +123,68 @@ void Chunk::rebuildCubeRenderList()
                     if(y > 0) {
                         b = getBlockAt(x, y - 1, z);
                         if(b->hasTransparency()) {
-                            addFace(x, y, z, b->ID, CUBE_FACE_BOTTOM);
+                            TextureManager.setBlockTextureBottom(b->ID);
+                            GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                GX_Position3f32(pos_x, pos_y, pos_z);
+                                    GX_TexCoord1x8(0);
+                                GX_Position3f32(pos_x, pos_y, pos_z + BLOCK_SIZE);
+                                    GX_TexCoord1x8(1);
+                                GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z);
+                                    GX_TexCoord1x8(2);
+                                GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z + BLOCK_SIZE);
+                                    GX_TexCoord1x8(3);
+                            GX_End();
                         }
                     }else {
                         p = bottomC;
                         if(p) {
                             b = p->getBlockAt(x, (CHUNK_SIZE-1), z);
                             if(b->hasTransparency()) {
-                                addFace(x, y, z, b->ID, CUBE_FACE_BOTTOM);
+                                TextureManager.setBlockTextureBottom(b->ID);
+                                GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                    GX_Position3f32(pos_x, pos_y, pos_z);
+                                        GX_TexCoord1x8(0);
+                                    GX_Position3f32(pos_x, pos_y, pos_z + BLOCK_SIZE);
+                                        GX_TexCoord1x8(1);
+                                    GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z);
+                                        GX_TexCoord1x8(2);
+                                    GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z + BLOCK_SIZE);
+                                        GX_TexCoord1x8(3);
+                                GX_End();
                             }
                         }
                     }
-
+                    TextureManager.setBlockTextureSide(b->ID);
                     //Left block neighbour
                     if(x > 0) {
                         b = getBlockAt(x - 1, y, z);
                         if(b->hasTransparency()) {
-                            addFace(x, y, z, b->ID, CUBE_FACE_LEFT);
+                            GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                GX_Position3f32(pos_x, pos_y, pos_z);
+                                    GX_TexCoord1x8(0);
+                                GX_Position3f32(pos_x, pos_y + BLOCK_SIZE, pos_z);
+                                    GX_TexCoord1x8(1);
+                                GX_Position3f32(pos_x, pos_y, pos_z + BLOCK_SIZE);
+                                    GX_TexCoord1x8(2);
+                                GX_Position3f32(pos_x, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                    GX_TexCoord1x8(3);
+                            GX_End();
                         }
                     }else {
                         p = leftC;
                         if(p) {
                             b = p->getBlockAt((CHUNK_SIZE-1), y, z);
                             if(b->hasTransparency()) {
-                                addFace(x, y, z, b->ID, CUBE_FACE_LEFT);
+                                GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                    GX_Position3f32(pos_x, pos_y, pos_z);
+                                        GX_TexCoord1x8(0);
+                                    GX_Position3f32(pos_x, pos_y + BLOCK_SIZE, pos_z);
+                                        GX_TexCoord1x8(1);
+                                    GX_Position3f32(pos_x, pos_y, pos_z + BLOCK_SIZE);
+                                        GX_TexCoord1x8(2);
+                                    GX_Position3f32(pos_x, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                        GX_TexCoord1x8(3);
+                                GX_End();
                             }
                         }
                     }
@@ -130,29 +192,66 @@ void Chunk::rebuildCubeRenderList()
                     if(x < (CHUNK_SIZE-1)) {
                         b = getBlockAt(x + 1, y, z);
                         if(b->hasTransparency()) {
-                            addFace(x, y, z, b->ID, CUBE_FACE_RIGHT);
+                            GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z);
+                                    GX_TexCoord1x8(0);
+                                GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z);
+                                    GX_TexCoord1x8(1);
+                                GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z + BLOCK_SIZE);
+                                    GX_TexCoord1x8(2);
+                                GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                    GX_TexCoord1x8(3);
+                            GX_End();
                         }
                     }else {
                         p = rightC;
                         if(p) {
                             b = p->getBlockAt(0, y, z);
                             if(b->hasTransparency()) {
-                                addFace(x, y, z, b->ID, CUBE_FACE_RIGHT);
+                                GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                    GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z);
+                                        GX_TexCoord1x8(0);
+                                    GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z);
+                                        GX_TexCoord1x8(1);
+                                    GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z + BLOCK_SIZE);
+                                        GX_TexCoord1x8(2);
+                                    GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                        GX_TexCoord1x8(3);
+                                GX_End();
                             }
                         }
                     }
+
                     //Front block neighbour
                     if(z < (CHUNK_SIZE-1)) {
                         b = getBlockAt(x, y, z + 1);
                         if(b->hasTransparency()) {
-                            addFace(x, y, z, b->ID, CUBE_FACE_FRONT);
+                           GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                              GX_Position3f32(pos_x, pos_y, pos_z + BLOCK_SIZE);
+                                 GX_TexCoord1x8(0);
+                              GX_Position3f32(pos_x, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                 GX_TexCoord1x8(1);
+                              GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z + BLOCK_SIZE);
+                                 GX_TexCoord1x8(2);
+                              GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                 GX_TexCoord1x8(3);
+                           GX_End();
                         }
                     }else {
                         p = frontC;
                         if(p) {
                             b = p->getBlockAt(x, y, 0);
                             if(b->hasTransparency()) {
-                                addFace(x, y, z, b->ID, CUBE_FACE_FRONT);
+                               GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                  GX_Position3f32(pos_x, pos_y, pos_z + BLOCK_SIZE);
+                                     GX_TexCoord1x8(0);
+                                  GX_Position3f32(pos_x, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                     GX_TexCoord1x8(1);
+                                  GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z + BLOCK_SIZE);
+                                     GX_TexCoord1x8(2);
+                                  GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z + BLOCK_SIZE);
+                                     GX_TexCoord1x8(3);
+                               GX_End();
                             }
                         }
                     }
@@ -160,21 +259,43 @@ void Chunk::rebuildCubeRenderList()
                     if(z > 0) {
                         b = getBlockAt(x, y, z - 1);
                         if(b->hasTransparency()) {
-                            addFace(x, y, z, b->ID, CUBE_FACE_BACK);
+                           GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                              GX_Position3f32(pos_x, pos_y, pos_z);
+                                 GX_TexCoord1x8(0);
+                              GX_Position3f32(pos_x, pos_y + BLOCK_SIZE, pos_z);
+                                 GX_TexCoord1x8(1);
+                              GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z);
+                                 GX_TexCoord1x8(2);
+                              GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z);
+                                 GX_TexCoord1x8(3);
+                           GX_End();
                         }
                     }else {
                         p = backC;
                         if(p) {
                             b = p->getBlockAt(x, y, (CHUNK_SIZE-1));
                             if(b->hasTransparency()) {
-                                addFace(x, y, z, b->ID, CUBE_FACE_BACK);
+                               GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
+                                  GX_Position3f32(pos_x, pos_y, pos_z);
+                                     GX_TexCoord1x8(0);
+                                  GX_Position3f32(pos_x, pos_y + BLOCK_SIZE, pos_z);
+                                     GX_TexCoord1x8(1);
+                                  GX_Position3f32(pos_x + BLOCK_SIZE, pos_y, pos_z);
+                                     GX_TexCoord1x8(2);
+                                  GX_Position3f32(pos_x + BLOCK_SIZE, pos_y + BLOCK_SIZE, pos_z);
+                                     GX_TexCoord1x8(3);
+                               GX_End();
                             }
                         }
                     }
                 }
+                pos_x += BLOCK_SIZE;
             }
+            pos_y += BLOCK_SIZE;
         }
+        pos_z += BLOCK_SIZE;
     }
+    dispListSize = GX_EndDispList();
 }
 
 
@@ -191,98 +312,7 @@ void Chunk::updateNeighbours()
 
 void Chunk::renderCubes()
 {
-    GX_SetArray(GX_VA_POS, blockPositionVertices, 3 * sizeof(float));
-    GX_SetArray(GX_VA_TEX0, blockTexCoordVertices, 2 * sizeof(float));
-
-    GX_SetCurrentMtx(GX_PNMTX0);
-
-    float x, y, z;
-    std::vector <struct cubeFaceData_t>::iterator it;
-    for(it = cubeFaceDataList.begin(); it != cubeFaceDataList.end(); ++it) {
-        x = indexX * CHUNK_SIZE + it->cubePosIndex.x * BLOCK_SIZE;
-        y = indexY * CHUNK_SIZE + it->cubePosIndex.y * BLOCK_SIZE;
-        z = indexZ * CHUNK_SIZE + it->cubePosIndex.z * BLOCK_SIZE;
-
-        MatrixStack.Push();
-        MatrixStack.Translate(x, y, z);
-        MatrixStack.Set(GX_PNMTX0);
-
-        if(it->face & CUBE_FACE_FRONT) {
-            GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
-                GX_Position1x8(0);
-                    GX_TexCoord1x8(0);
-                GX_Position1x8(1);
-                    GX_TexCoord1x8(1);
-                GX_Position1x8(2);
-                    GX_TexCoord1x8(2);
-                GX_Position1x8(3);
-                    GX_TexCoord1x8(3);
-            GX_End();
-        }
-        if(it->face & CUBE_FACE_RIGHT) {
-            GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
-                GX_Position1x8(2);
-                    GX_TexCoord1x8(0);
-                GX_Position1x8(3);
-                    GX_TexCoord1x8(1);
-                GX_Position1x8(4);
-                    GX_TexCoord1x8(2);
-                GX_Position1x8(5);
-                    GX_TexCoord1x8(3);
-            GX_End();
-        }
-        if(it->face & CUBE_FACE_BACK) {
-            GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
-                GX_Position1x8(4);
-                    GX_TexCoord1x8(0);
-                GX_Position1x8(5);
-                    GX_TexCoord1x8(1);
-                GX_Position1x8(6);
-                    GX_TexCoord1x8(2);
-                GX_Position1x8(7);
-                    GX_TexCoord1x8(3);
-            GX_End();
-        }
-        if(it->face & CUBE_FACE_LEFT) {
-            GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
-                GX_Position1x8(6);
-                    GX_TexCoord1x8(0);
-                GX_Position1x8(7);
-                    GX_TexCoord1x8(1);
-                GX_Position1x8(0);
-                    GX_TexCoord1x8(2);
-                GX_Position1x8(1);
-                    GX_TexCoord1x8(3);
-            GX_End();
-        }
-        if(it->face & CUBE_FACE_TOP) {
-            GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
-                GX_Position1x8(1);
-                    GX_TexCoord1x8(0);
-                GX_Position1x8(7);
-                    GX_TexCoord1x8(1);
-                GX_Position1x8(3);
-                    GX_TexCoord1x8(2);
-                GX_Position1x8(5);
-                    GX_TexCoord1x8(3);
-            GX_End();
-        }
-        if(it->face & CUBE_FACE_BOTTOM) {
-            GX_Begin(GX_TRIANGLESTRIP, GX_VTXFMT0, 4);
-                GX_Position1x8(6);
-                    GX_TexCoord1x8(0);
-                GX_Position1x8(0);
-                    GX_TexCoord1x8(1);
-                GX_Position1x8(4);
-                    GX_TexCoord1x8(2);
-                GX_Position1x8(2);
-                    GX_TexCoord1x8(3);
-            GX_End();
-        }
-
-        MatrixStack.Pop();
-    }
-
+    GX_CallDispList(dispList, dispListSize);
 }
 
 

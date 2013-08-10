@@ -8,7 +8,7 @@
 #include <string.h>
 #include <math.h>
 #include <gccore.h>
-#include <FreeTypeGX.h>
+
 
 #include "Image.h"
 #include "Chunk.h"
@@ -17,10 +17,11 @@
 #include "TextureManager.h"
 
 
-#define FIFO_SIZE (4 * 1024 * 1024)
+#define FIFO_SIZE (2 * 1024 * 1024)
 
-const int WORLD_SIZE = 12;
-const int CHUNK_ARRAY_SIZE = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE;
+const int WORLD_LENGTH = 12;
+const int WORLD_HEIGHT = 6;
+const int WORLD_ARRAY_SIZE = WORLD_LENGTH * WORLD_LENGTH * WORLD_HEIGHT;
 
 class World
 {
@@ -39,7 +40,7 @@ public:
     float pitch, yaw;
 //private:
 
-    Chunk *chunkArray[CHUNK_ARRAY_SIZE];
+    Chunk *chunkArray[WORLD_ARRAY_SIZE];
 
     void initGX();
     void exitGX();

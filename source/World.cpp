@@ -18,10 +18,10 @@ World::~World()
 
 Chunk *World::getChunkAt(int x, int y, int z)
 {
-   if( (x < 0 || x >= WORLD_SIZE) || (y < 0 || y >= WORLD_SIZE) || (z < 0 || z >= WORLD_SIZE)) {
+   if( (x < 0 || x >= WORLD_LENGTH) || (y < 0 || y >= WORLD_HEIGHT) || (z < 0 || z >= WORLD_LENGTH)) {
       return NULL;
    }
-   return chunkArray[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_SIZE];
+   return chunkArray[x + y * WORLD_LENGTH + z * WORLD_LENGTH * WORLD_HEIGHT];
 }
 
 
@@ -31,17 +31,17 @@ void World::initChunkArray()
     Chunk *current;
 
     int x, y, z;
-    for(z = 0; z < WORLD_SIZE; z++) {
-        for(y = 0; y < WORLD_SIZE; y++) {
-            for(x = 0; x < WORLD_SIZE; x++) {
-                chunkArray[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_SIZE] = new Chunk(x, y, z);
+    for(z = 0; z < WORLD_LENGTH; z++) {
+        for(y = 0; y < WORLD_HEIGHT; y++) {
+            for(x = 0; x < WORLD_LENGTH; x++) {
+                chunkArray[x + y * WORLD_LENGTH + z * WORLD_LENGTH * WORLD_HEIGHT] = new Chunk(x, y, z);
             }
         }
     }
 
-    for(z = 0; z < WORLD_SIZE; z++) {
-        for(y = 0; y < WORLD_SIZE; y++) {
-            for(x = 0; x < WORLD_SIZE; x++) {
+    for(z = 0; z < WORLD_LENGTH; z++) {
+        for(y = 0; y < WORLD_HEIGHT; y++) {
+            for(x = 0; x < WORLD_LENGTH; x++) {
                 topC    = getChunkAt(x, y + 1, z);
                 bottomC = getChunkAt(x, y - 1, z);
                 rightC  = getChunkAt(x + 1, y, z);
@@ -60,10 +60,10 @@ void World::initChunkArray()
 void World::deleteChunkArray()
 {
    int x, y, z;
-   for(z = 0; z < WORLD_SIZE; z++) {
-      for(y = 0; y < WORLD_SIZE; y++) {
-         for(x = 0; x < WORLD_SIZE; x++) {
-            delete chunkArray[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_SIZE];
+    for(z = 0; z < WORLD_LENGTH; z++) {
+        for(y = 0; y < WORLD_HEIGHT; y++) {
+            for(x = 0; x < WORLD_LENGTH; x++) {
+                delete chunkArray[x + y * WORLD_LENGTH + z * WORLD_LENGTH * WORLD_HEIGHT];
          }
       }
    }
@@ -74,10 +74,10 @@ void World::deleteChunkArray()
 void World::drawChunks()
 {
     int x, y, z;
-    for(z = 0; z < WORLD_SIZE; z++) {
-        for(y = 0; y < WORLD_SIZE; y++) {
-            for(x = 0; x < WORLD_SIZE; x++) {
-                chunkArray[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_SIZE]->renderCubes();
+    for(z = 0; z < WORLD_LENGTH; z++) {
+        for(y = 0; y < WORLD_HEIGHT; y++) {
+            for(x = 0; x < WORLD_LENGTH; x++) {
+                chunkArray[x + y * WORLD_LENGTH + z * WORLD_LENGTH * WORLD_HEIGHT]->renderCubes();
             }
         }
     }
@@ -156,7 +156,7 @@ void World::initGX()
     GX_InvVtxCache();
 	GX_ClearVtxDesc();
 
-    GX_SetVtxDesc(GX_VA_POS, GX_INDEX8);
+    GX_SetVtxDesc(GX_VA_POS, GX_DIRECT);
     GX_SetVtxDesc(GX_VA_CLR0, GX_NONE);
     GX_SetVtxDesc(GX_VA_TEX0, GX_INDEX8);
 
